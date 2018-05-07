@@ -1,0 +1,6 @@
+en:
+  talk-plugin-ckeditor:
+    format_bold: bold
+    format_italic: italic
+    format_blockquote: blockquote
+
