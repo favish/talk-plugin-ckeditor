@@ -5,8 +5,8 @@ import cn from 'classnames';
 import { PLUGIN_NAME } from '../constants';
 import { htmlNormalizer } from '../utils';
 import CKEditor from 'react-ckeditor-component';
-import { Icon } from 'plugin-api/beta/client/components/ui';
-import { t } from 'plugin-api/beta/client/services';
+import sanitizeHTML from 'sanitize-html';
+
 // TODO - probably should go in the container - MEA
 import config from '../config';
 
@@ -18,11 +18,12 @@ class Editor extends React.Component {
   handleRef = refCKEditor => (this.refCKEditor = refCKEditor);
 
   handleChange = event => {
-    console.log(event.editor.document.getBody().getText());
-    console.log(event.editor.getData());
+    let editorHTMLText = event.editor.getData();
+    // Get just the text contents of CKEditor but conserve whitespace and newlines
+    let plainText = sanitizeHTML(editorHTMLText, { allowedTags: [], allowedAttributes: []});
     this.props.onInputChange({
-      body: event.editor.document.getBody().getText(),
-      richTextBody: event.editor.getData(),
+      body: plainText,
+      richTextBody: editorHTMLText,
     });
   };
 

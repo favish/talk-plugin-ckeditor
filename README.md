@@ -51,6 +51,10 @@ Settings for highlighting links. These will only apply if `higlightLinks` is set
 
 Rules to sanitize html input.  We use [DOMPurify](https://github.com/cure53/DOMPurify) to prevent web attacks and XSS. Here is the complete list of [settings](https://github.com/cure53/DOMPurify)
 
+#### `sanitize-html`
+
+Used to get plaintext data from CKEditor while preserving whitespace and line breaks to save the regular text to the body field.  More info here: [sanitize-html](https://github.com/punkave/sanitize-html).
+
 #### `jsdom`
 
 In order to run html in the server we need [jsdom](https://github.com/jsdom/jsdom). Usually you wouldn’t need to modify this settings.
