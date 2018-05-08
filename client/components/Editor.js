@@ -4,19 +4,23 @@ import styles from './Editor.css';
 import cn from 'classnames';
 import { PLUGIN_NAME } from '../constants';
 import { htmlNormalizer } from '../utils';
-import RTE from './rte/RTE';
+import CKEditor from 'react-ckeditor-component';
 import { Icon } from 'plugin-api/beta/client/components/ui';
-import { Bold, Italic, Blockquote } from './rte/features';
 import { t } from 'plugin-api/beta/client/services';
 
 class Editor extends React.Component {
-  ref = null;
-  handleRef = ref => (this.ref = ref);
 
-  handleChange = c => {
+  refCKEditor = null;
+  editorInstance = null;
+
+  handleRef = refCKEditor => (this.refCKEditor = refCKEditor);
+
+  handleChange = event => {
+    console.log(event.editor.document.getBody().getText());
+    console.log(event.editor.getData());
     this.props.onInputChange({
-      body: c.text,
-      richTextBody: c.html,
+      body: event.editor.document.getBody().getText(),
+      richTextBody: event.editor.getData(),
     });
   };
 
@@ -40,73 +44,135 @@ class Editor extends React.Component {
         }
       });
     }
-    if (this.props.isReply) {
-      this.ref.focus();
+  }
+
+  // Update CKEditor when the comment content is cleared
+  componentDidUpdate(prevProps, prevState) {
+    if (
+      this.props.input.body.length === 0 &&
+      prevProps.input.body.length > 0 &&
+      (this.refCKEditor && this.refCKEditor.editorInstance.document.getBody().getText().length > 0)
+    ) {
+      this.refCKEditor.editorInstance.setData('');
     }
   }
+
+  // TODO - put CKEditor functionality in a sub-component
+  handleCKEditorLoad = () => {
+    if (!this.bindedCKEditorEvents) {
+      // Move the CKEditor dialog windows to the top of the iframe instead of vertical center
+      window.CKEDITOR.on('dialogDefinition', event => {
+        let definition = event.data.definition;
+        if (event.data.name === 'link') {
+          // Moving the link dialog exposes the 'Select an Anchor' and Email options, remove them.
+          definition.contents[0].elements = definition.contents[0].elements.filter(element => {
+            let blacklist = ['anchorOptions', 'emailOptions'];
+            return blacklist.indexOf(element.id) === -1;
+          });
+        }
+
+        definition.dialog.on('show', function (event) {
+          let offsetTop = event.sender._.editor.element.getDocumentPosition().y;
+          // Pop this onto the end of the show handlers
+          setTimeout(() => {
+            this.move(this.getPosition().x, offsetTop+10)
+          }, 0);
+        });
+      });
+      this.bindedCKEditorEvents = true;
+    }
+
+    if (this.props.isReply) {
+      this.refCKEditor.editorInstance.focus();
+    }
+  };
 
   componentWillUnmount() {
     this.props.unregisterHook(this.normalizeHook);
   }
 
   render() {
-    const { id, placeholder, label, disabled } = this.props;
+    const { id, placeholder, label, disabled, editorConfig } = this.props;
 
-    const inputId = `${id}-rte`;
     return (
       <div className={cn(styles.root, `${PLUGIN_NAME}-container`)}>
         <label
-          htmlFor={inputId}
+          htmlFor={id}
           className="screen-reader-text"
           aria-hidden={true}
         >
           {label}
         </label>
-        <RTE
-          inputId={inputId}
-          className={`${PLUGIN_NAME}-editor`}
-          classNameDisabled={`${PLUGIN_NAME}-editor-disabled`}
-          contentClassName={cn(`${PLUGIN_NAME}-content`, styles.commentContent)}
-          contentClassNameDisabled={`${PLUGIN_NAME}-content-disabled`}
-          toolbarClassName={`${PLUGIN_NAME}-toolbar`}
-          toolbarClassNameDisabled={`${PLUGIN_NAME}-toolbar-disabled`}
-          onChange={this.handleChange}
-          value={this.getHTML()}
-          disabled={disabled}
-          placeholder={placeholder}
+        <CKEditor
+          activeClass={`${PLUGIN_NAME}-editor`}
+          config={{
+            ...editorConfig,
+            readOnly: disabled,
+          }}
           ref={this.handleRef}
-          features={[
-            <Bold
-              key="bold"
-              title={t('talk-plugin-rich-text.format_bold')}
-              className={`${PLUGIN_NAME}-feature-bold`}
-            >
-              <Icon className={styles.icon} name="format_bold" />
-            </Bold>,
-            <Italic
-              key="italic"
-              title={t('talk-plugin-rich-text.format_italic')}
-              className={`${PLUGIN_NAME}-feature-italic`}
-            >
-              <Icon className={styles.icon} name="format_italic" />
-            </Italic>,
-            <Blockquote
-              key="blockquote"
-              title={t('talk-plugin-rich-text.format_blockquote')}
-              className={`${PLUGIN_NAME}-feature-blockquote`}
-            >
-              <Icon className={styles.icon} name="format_quote" />
-            </Blockquote>,
-          ]}
+          content={this.getHTML()}
+          placeholder={placeholder}
+          id={id}
+          events={{
+            change: this.handleChange,
+            instanceReady: this.handleCKEditorLoad,
+          }}
+          disabled={disabled}
         />
       </div>
     );
   }
 }
 
+Editor.defaultProps = {
+  // TODO - Use settings obtained from admin interface for allowedContent - MEA
+  editorConfig: {
+    allowedContent: {
+      '*': { attributes: 'lang,dir', styles: false, classes: false },
+      a: { attributes: 'href,hreflang', styles: false, classes: false },
+      blockquote: { attributes: 'cite', styles: false, classes: false },
+      cite: { attributes: false, styles: false, classes: false },
+      code: { attributes: false, styles: false, classes: false },
+      dd: { attributes: false, styles: false, classes: false },
+      dl: { attributes: false, styles: false, classes: false },
+      dt: { attributes: false, styles: false, classes: false },
+      em: { attributes: false, styles: false, classes: false },
+      li: { attributes: false, styles: false, classes: false },
+      ol: { attributes: 'start,type', styles: false, classes: false },
+      strong: { attributes: false, styles: false, classes: false },
+      sub: { attributes: false, styles: false, classes: false },
+      sup: { attributes: false, styles: false, classes: false },
+      u: { attributes: false, styles: false, classes: false },
+      ul: { attributes: 'type', styles: false, classes: false },
+    },
+    disableNativeSpellChecker: false,
+    entities: false,
+    language: 'en',
+    pasteFromWordPromptCleanup: true,
+    resize_enabled: false,
+    toolbar: [
+      {
+        name: 'Formatting',
+        items: ['Bold', 'Italic', 'Underline', 'Superscript', 'Subscript'],
+      },
+      { name: 'Links', items: ['Link', 'Unlink'] },
+      {
+        name: 'Lists',
+        items: ['BulletedList', 'NumberedList'],
+      },
+      { name: 'Media', items: ['Blockquote'] },
+      { name: 'Tools', items: ['Source'] },
+      '/',
+    ],
+    removePlugins: 'tabletools,contextmenu,tableresize',
+    title: 'Rich Text Editor, Comment field',
+    contentsLangDirection: 'ltr',
+    contentsCss: [],
+  },
+};
+
 Editor.propTypes = {
   input: PropTypes.object,
-  placeholder: PropTypes.string,
   onInputChange: PropTypes.func,
   disabled: PropTypes.bool,
   comment: PropTypes.object,
@@ -117,6 +183,7 @@ Editor.propTypes = {
   id: PropTypes.string,
   label: PropTypes.string,
   placeholder: PropTypes.string,
+  editorConfig: PropTypes.object,
 };
 
 export default Editor;
