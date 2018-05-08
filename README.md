@@ -9,7 +9,7 @@ plugin:
         - Server
 ---
 
-Enables secure rich text support via CKEditor.
+Extends/modifies the [default Coral Talk Rich Text plugin](https://github.com/coralproject/talk/tree/master/plugins/talk-plugin-rich-text) to use [CKEditor 4](https://ckeditor.com/ckeditor-4/) as a rich text editor for comments.
 
 ## Installation
 
@@ -33,8 +33,11 @@ know.
 
 ### Configuration
 
-There is a `config.js` in the root folder. This file contains the recommended
+There is a `config.js` in the server folder. This file contains the recommended
 settings.
+
+You may also adjust CKEditor config in `client/config.js`.  CKEditor loads in an iframe, so you will most likely
+want to add your custom CSS there in the contentsCSS key.
 
 #### `highlightLinks`
 
@@ -60,8 +63,6 @@ This plugin contains 2 important components:
 
 - The Editor (`./components/Editor.js`)
 - The Comment Content Renderer (`./components/CommentContent.js`)
-
-The editor component utilizes the [contentEditable](https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/Editable_content) and execCommand API.
 
 If you check our `index.js` you will notice that we inject this editor in the
 `commentBox` slot. We do this to replace the core comment box with this one.
