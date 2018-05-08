@@ -14,6 +14,8 @@ const config = {
   dompurify: {
     ALLOWED_TAGS: [
       'a',
+      'b',
+      'i',
       'br',
       'em',
       'strong',
